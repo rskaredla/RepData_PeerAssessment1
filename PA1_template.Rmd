@@ -1,0 +1,98 @@
+---
+title: ""Reproducible Research: Peer Assessment 1""
+author: "Ravi"
+output: html_document
+keep_md: true
+---
+Personal movement data - number of steps taken in a interval of 5 mins - has been collected using activities monitering devices. The data for this study has been provided as part of the course material
+
+There three objectives of this study:
+  * understand the activity pattern, investigate the mean number of steps taken per day & mean of number of steps per 5 min slots
+  * understand the significance of ignoring or including unavailable data (NA)
+  * Weekday VS weekend behaviour
+
+### Data Exploration
+
+Load the data & perform initial exploration
+```{r, echo=TRUE}
+activity <- read.csv("activity.csv")
+head(activity)
+tail(activity)
+summary(activity)
+```
+
+From the 'head' & 'tail' operation, it is clear that we have data from 1 Oct 2012 to 30 Nov 2012 i.e, 61 days in all. The number of 5 min interval in a day & all 61 day is - 
+```{r, echo=TRUE}
+i5pd <- 24*60/5 # 5 min intervals in a day
+i5pd
+i5pd*61         # 5 min intervals in 61 days
+```
+The number of 5 min intervals in 61 days is 17568 and this the number of rows in activities. Also, the number of data points for each day (as seen the summary output) is 288 which again is equal to the 5 min intervals in a day. Thus, there are no missing rows of 5 min interval.
+
+Also, from this exploration we observe that there are 2304 NA's (from summary output).
+
+### Stats of Steps per Day
+
+Statistics of steps taken per day is calculated. For this study all the NA's are ignored.
+
+```{r,echo=TRUE}
+steps_perday <- tapply(activity$steps,activity$date,sum,na.rm=TRUE)
+mean(steps_perday)
+median(steps_perday)
+hist(steps_perday,freq=FALSE,ann=FALSE)
+title(main="Histogram of Steps Per Day",xlab="Number of Steps",ylab="Density")
+box()
+```
+<br> 
+Mean steps per day equals to 9354.23 & median is 10395. 
+
+### Time Series Plot of 5 min intervals
+```{r,echo=TRUE}
+# define base interval
+binterval <- matrix(,nrow=61*i5pd,ncol=0)
+for (i in 1:61) {
+  for (k in 1:i5pd) {
+    binterval[i5pd*(i-1)+k] <- k 
+  } 
+}
+activity <- cbind(activity,binterval)
+timean <- tapply(activity$steps,activity$binterval,mean,na.rm=TRUE)
+int <- rownames(timean)
+int <- as.numeric(int)
+plot(int,timean,type="l",xlab="time interval number",ylab="average number of steps")
+which.max(timean)
+```
+104 minute interval contains the maximum number of steps on average across all the days in the dataset.
+
+### Effect of NA
+Now the NA is replaced with a simple estimate. The estimate taken here is the average of steps taken in all of 61 days ignoring the NA's. The NA's are replaced with is estimare & studies performed.
+
+```{r, echo=TRUE}
+# in putting missing values
+sum(is.na(activity$steps))
+```
+Number of NA's are 2304 (also observed in the data summary)
+
+```{r, echo=TRUE}
+meanall <- mean(activity$steps,na.rm=TRUE)
+newadf <- activity
+k<-0L
+for (i in 1:length(activity$steps)){
+  if(is.na(activity$steps[i])){
+    k <- k + 1L
+    newadf$steps[i]<-meanall
+  }
+}
+k  # number of values changed, should be equal to number of NA's
+meanall
+
+steps_perday1 <- tapply(newadf$steps,newadf$date,sum,na.rm=TRUE)
+mean(steps_perday1)
+median(steps_perday1)
+hist(steps_perday1,freq=FALSE)
+```
+With the replacement of NA's with an estimate, the mean has increased. The historam is "more" symmetric & normal than when NA's are ignored. Also, significant concentration can be observed at the mean.
+Thus replacing the NA has effect of the data summary.
+
+### Weekdays Plot
+
